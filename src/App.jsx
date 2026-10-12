@@ -1,90 +1,8 @@
 import { useEffect, useState } from "react";
 import "./InventoryDashboard.css";
-
-const configuredApiUrl = (import.meta.env.VITE_API_URL || "").replace(/\/+$/, "");
-const API_URL = import.meta.env.DEV
-  ? ""
-  : configuredApiUrl.replace(/\/api$/i, "");
-const FALLBACK_API_URLS = [API_URL];
-
-const buildApiUrl = (baseUrl, endpoint) => {
-  if (!endpoint) {
-    return baseUrl || "";
-  }
-
-  if (endpoint.startsWith("http")) {
-    return endpoint;
-  }
-
-  const cleanBase = baseUrl ? baseUrl.replace(/\/$/, "") : "";
-  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-
-  return `${cleanBase}${cleanEndpoint}`;
-};
-
-const parseApiResult = async (response) => {
-  const contentType = response.headers.get("content-type") || "";
-  const rawText = await response.text();
-
-  if (!rawText) {
-    return {
-      message: "Request failed. Please try again.",
-    };
-  }
-
-  if (contentType.includes("application/json") || rawText.trim().startsWith("{")) {
-    try {
-      const data = JSON.parse(rawText);
-      return {
-        ...data,
-        message: data.message || data.error,
-      };
-    } catch {
-      return { message: rawText.trim() };
-    }
-  }
-
-  const errorDocument = new DOMParser().parseFromString(rawText, "text/html");
-  errorDocument.querySelectorAll("style, script").forEach((element) => element.remove());
-  const cleanText = (errorDocument.body.textContent || "")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  return { message: cleanText || "Request failed. Please try again." };
-};
-
-const requestWithFallback = async (endpoints, payload, method = "POST") => {
-  let lastError = null;
-
-  for (const baseUrl of FALLBACK_API_URLS) {
-    for (const endpoint of endpoints) {
-      const url = buildApiUrl(baseUrl, endpoint);
-
-      try {
-        const response = await fetch(url, {
-          method,
-          headers: {
-            "Content-Type": "application/json",
-            Accept: "application/json",
-          },
-          body: method === "GET" ? undefined : JSON.stringify(payload || {}),
-        });
-
-        const data = await parseApiResult(response);
-
-        if (response.ok) {
-          return { ok: true, data };
-        }
-
-        lastError = data;
-      } catch {
-        lastError = { message: "Unable to connect to the API." };
-      }
-    }
-  }
-
-  return { ok: false, data: lastError || { message: "Request failed. Please try again." } };
-};
+import { API_CONFIG, API_URL, buildApiUrl, parseApiResult, requestWithFallback } from "./config/api";
+import AuthPage from "./features/auth/AuthPage";
+import ProductDashboard from "./features/products/ProductDashboard";
 
 function App() {
   // ==========================================
@@ -155,7 +73,7 @@ function App() {
 
     try {
       const result = await requestWithFallback([
-        "/api/login",
+        API_CONFIG.endpoints.login,
       ], { username, password }, "POST");
 
       if (!result.ok) {
@@ -217,7 +135,7 @@ function App() {
 
     try {
       const result = await requestWithFallback([
-        "/api/register",
+        API_CONFIG.endpoints.register,
       ], {
         username: registerUsername.trim(),
         email: registerEmail.trim(),
@@ -273,7 +191,7 @@ function App() {
     setMessage("");
 
     try {
-      const response = await fetch(buildApiUrl(API_URL, "/api/products"), {
+      const response = await fetch(buildApiUrl(API_URL, API_CONFIG.endpoints.products), {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -402,8 +320,8 @@ function App() {
       const isEditing = editingId !== null;
 
       const url = isEditing
-        ? buildApiUrl(API_URL, `/api/products/${editingId}`)
-        : buildApiUrl(API_URL, "/api/products");
+        ? buildApiUrl(API_URL, `${API_CONFIG.endpoints.products}/${editingId}`)
+        : buildApiUrl(API_URL, API_CONFIG.endpoints.products);
 
       const method = isEditing ? "PUT" : "POST";
 
@@ -470,7 +388,7 @@ function App() {
 
     try {
       const response = await fetch(
-        buildApiUrl(API_URL, `/api/products/${id}`),
+        buildApiUrl(API_URL, `${API_CONFIG.endpoints.products}/${id}`),
         {
           method: "DELETE",
           headers: {
@@ -530,313 +448,50 @@ function App() {
 
   if (!user) {
     return (
-      <div className="auth-page">
-        <section className="auth-showcase" aria-label="Kanto Store">
-          <a className="auth-brand" href="#auth" aria-label="Kanto Store home">
-            <span className="auth-brand-mark">K</span>
-            <span><strong>KANTO</strong><small>SARI-SARI STORE</small></span>
-          </a>
-          <div className="auth-showcase-copy">
-            <span className="auth-overline">MUNTING TINDAHAN, ARAW-ARAW NA KASAMA</span>
-            <h1>Malapit.<br />Maaasahan.<br /><em>Laging bukas.</em></h1>
-            <p>Ayos na talaan ng paninda para sa takbo ng iyong tindahan.</p>
-          </div>
-          <span className="auth-showcase-foot">KANTO STORE <i>·</i> YOUR NEIGHBORHOOD SUKI</span>
-        </section>
-
-        <section className="auth-panel" id="auth">
-          <div className="auth-card">
-            <div className="auth-mobile-brand">
-              <span className="auth-brand-mark">K</span>
-              <span><strong>KANTO</strong><small>SARI-SARI STORE</small></span>
-            </div>
-            <span className="auth-overline auth-form-overline">{authMode === "login" ? "STORE MANAGEMENT" : "JOIN THE STORE"}</span>
-            <h2 className="auth-title">{authMode === "login" ? "Welcome back" : "Create account"}<span>.</span></h2>
-            <p className="auth-subtitle">{authMode === "login" ? "Mag-sign in para ma-check ang iyong paninda." : "Gumawa ng account para mapamahalaan ang tindahan."}</p>
-
-          {message && (
-            <div className={`auth-message ${isRegistrationSuccess ? "auth-message-success" : "auth-message-error"}`}>
-              <span className="auth-message-icon">
-                {isRegistrationSuccess ? "✓" : "×"}
-              </span>
-              {message}
-            </div>
-          )}
-
-          {authMode === "login" ? (
-            <form onSubmit={login} className="auth-form">
-
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Username"
-                className="auth-input"
-                required
-              />
-
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Password"
-                className="auth-input"
-                required
-              />
-
-              <button
-                type="submit"
-                className="auth-submit"
-              >
-                Sign In
-              </button>
-
-              <div className="auth-switch">
-                <span>Wala ka pang account?</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode("register");
-                    setMessage("");
-                  }}
-                  className="auth-link"
-                >
-                  Register
-                </button>
-              </div>
-
-            </form>
-          ) : (
-            <form onSubmit={register} className="auth-form">
-
-              <input
-                type="text"
-                value={registerUsername}
-                onChange={(e) => setRegisterUsername(e.target.value)}
-                placeholder="Username"
-                className="auth-input"
-                required
-              />
-
-              <input
-                type="email"
-                value={registerEmail}
-                onChange={(e) => setRegisterEmail(e.target.value)}
-                placeholder="Email"
-                className="auth-input"
-                required
-              />
-
-              <input
-                type="password"
-                value={registerPassword}
-                onChange={(e) => setRegisterPassword(e.target.value)}
-                placeholder="Password"
-                className="auth-input"
-                required
-              />
-
-              <button
-                type="submit"
-                className="auth-submit"
-              >
-                Register
-              </button>
-
-              <div className="auth-switch">
-                <span>May account ka na?</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAuthMode("login");
-                    setMessage("");
-                  }}
-                  className="auth-link"
-                >
-                  Login
-                </button>
-              </div>
-
-            </form>
-          )}
-
-            <div className="auth-card-foot"><span className="auth-foot-dot" /> STOCKS IN ORDER, SUKI IN MIND</div>
-          </div>
-        </section>
-      </div>
+      <AuthPage
+        authMode={authMode}
+        username={username}
+        password={password}
+        registerUsername={registerUsername}
+        registerEmail={registerEmail}
+        registerPassword={registerPassword}
+        message={message}
+        isRegistrationSuccess={isRegistrationSuccess}
+        setUsername={setUsername}
+        setPassword={setPassword}
+        setRegisterUsername={setRegisterUsername}
+        setRegisterEmail={setRegisterEmail}
+        setRegisterPassword={setRegisterPassword}
+        login={login}
+        register={register}
+        setAuthMode={setAuthMode}
+        setMessage={setMessage}
+      />
     );
   }
 
-  // ==========================================
-  // PRODUCT MANAGEMENT PAGE
-  // ==========================================
-
   return (
-    <div className="inventory-app">
-      <aside className="app-sidebar">
-        <a className="brand" href="#dashboard" aria-label="Kanto Store dashboard">
-          <span className="brand-mark">K</span>
-          <span className="brand-copy"><strong>KANTO</strong><span>SARI-SARI STORE</span></span>
-        </a>
-        <div className="sidebar-label">TINDAHAN DESK</div>
-        <nav className="sidebar-nav" aria-label="Store navigation">
-          <a className="sidebar-link" href="#dashboard"><span className="sidebar-link-icon">⌂</span>Storefront</a>
-          <a className="sidebar-link is-current" href="#inventory-list"><span className="sidebar-link-icon">▤</span>Stock list<span className="sidebar-count">{products.length}</span></a>
-        </nav>
-        <div className="sidebar-bottom">
-          <div className="store-status"><span className="live-dot" /><span><strong>Tindahan open</strong><small>Stock list is up to date</small></span></div>
-          <div className="sidebar-account">
-            <span className="account-avatar">{user.username?.charAt(0).toUpperCase() || "U"}</span>
-            <span className="sidebar-user-copy"><small>Signed in as</small><strong>{user.username}</strong></span>
-          </div>
-          <button className="sidebar-logout" onClick={logout}>Log out <span aria-hidden="true">↗</span></button>
-        </div>
-      </aside>
-
-      <div className="workspace">
-        <header className="workspace-topbar">
-          <div className="workspace-crumb"><span>KANTO STORE</span><i>/</i> DAILY STOCK</div>
-          <div className="workspace-date"><span className="live-dot" /> STORE OPEN <i /> DAILY STOCK</div>
-        </header>
-
-        <main className="inventory-main" id="dashboard">
-        <section className="store-banner" aria-label="Kanto Store daily stock overview">
-          <div className="banner-shade" />
-          <div className="banner-copy">
-            <span className="eyebrow eyebrow-light">NEIGHBORHOOD STORE / DAILY STOCK</span>
-            <h1>Tindahan inventory<span>.</span></h1>
-            <p>Paninda, bilang, at presyong laging updated.</p>
-          </div>
-          <div className="banner-index"><span>KANTO STORE</span><strong>01</strong><span>DAILY LIST</span></div>
-        </section>
-
-        <section className="stats-grid" aria-label="Inventory summary">
-          <article className="stat-card stat-card-primary">
-            <span className="stat-label">CATALOGUE ITEMS</span>
-            <strong className="stat-value">{products.length.toLocaleString()}</strong>
-            <span className="stat-foot">Products in your catalogue</span>
-          </article>
-          <article className="stat-card">
-            <span className="stat-label">UNITS ON HAND</span>
-            <strong className="stat-value">{totalUnits.toLocaleString()}</strong>
-            <span className="stat-foot">Across all products</span>
-          </article>
-          <article className="stat-card">
-            <span className="stat-label">STOCK VALUE</span>
-            <strong className="stat-value stat-value-money">₱{inventoryValue.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong>
-            <span className="stat-foot">Retail value on hand</span>
-          </article>
-          <article className={`stat-card ${lowStockCount ? "stat-card-alert" : ""}`}>
-            <span className="stat-label">LOW STOCK</span>
-            <strong className="stat-value">{lowStockCount.toLocaleString()}</strong>
-            <span className="stat-foot">Items with 1–5 units</span>
-          </article>
-        </section>
-
-        {message && (
-          <div className={`dashboard-alert ${/unable|failed|required|valid|login|not found|unauthorized/i.test(message) ? "is-error" : "is-success"}`} role="status">
-            <span className="alert-mark" aria-hidden="true">{/unable|failed|required|valid|login|not found|unauthorized/i.test(message) ? "!" : "✓"}</span>
-            <span>{message}</span>
-            <button className="alert-dismiss" onClick={() => setMessage("")} aria-label="Dismiss message">×</button>
-          </div>
-        )}
-
-        <section className="products-section" id="inventory-list" aria-labelledby="products-heading">
-          <div className="section-heading">
-            <div>
-              <span className="eyebrow">PRODUCT DIRECTORY</span>
-              <h2 id="products-heading">Your inventory<span className="heading-period">.</span></h2>
-            </div>
-            <div className="section-actions">
-              <button className="refresh-action" onClick={() => loadProducts()} disabled={loading}>
-                <span aria-hidden="true">↻</span> {loading ? "Refreshing" : "Refresh"}
-              </button>
-              <button className="add-action" onClick={openAddForm}><span aria-hidden="true">＋</span> Add product</button>
-            </div>
-          </div>
-
-          <div className="inventory-toolbar">
-            <label className="search-box">
-              <span className="search-icon" aria-hidden="true">⌕</span>
-              <input
-                type="search"
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search products or descriptions"
-                aria-label="Search products"
-              />
-              {searchQuery && <button type="button" onClick={() => setSearchQuery("")} aria-label="Clear search">×</button>}
-            </label>
-            <div className="stock-filters" role="group" aria-label="Filter products by stock status">
-              {[
-                ["all", "All items", products.length],
-                ["in-stock", "In stock", products.filter((product) => Number(product.quantity) > 5).length],
-                ["low-stock", "Low stock", lowStockCount],
-                ["out-of-stock", "Out of stock", products.filter((product) => Number(product.quantity) === 0).length],
-              ].map(([value, label, count]) => (
-                <button
-                  className={`stock-filter ${stockFilter === value ? "is-active" : ""}`}
-                  key={value}
-                  onClick={() => setStockFilter(value)}
-                  aria-pressed={stockFilter === value}
-                >
-                  {label}<span>{count}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="products-table-wrap">
-            <table className="products-table">
-              <thead>
-                <tr><th>PRODUCT</th><th>UNIT PRICE</th><th>QUANTITY</th><th>STOCK STATUS</th><th>ADDED</th><th>ACTIONS</th></tr>
-              </thead>
-              <tbody>
-                {loading ? (
-                  <tr><td colSpan="6" className="table-message"><span className="loading-mark" /> Loading your inventory…</td></tr>
-                ) : filteredProducts.length === 0 ? (
-                  <tr><td colSpan="6" className="table-message empty-message">
-                    <span className="empty-symbol" aria-hidden="true">□</span>
-                    <strong>{products.length === 0 ? "Nothing in the warehouse yet" : "No matching products"}</strong>
-                    <span>{products.length === 0 ? "Add your first item to start tracking inventory." : "Try a different search or stock filter."}</span>
-                    {products.length === 0 && <button className="add-action empty-add" onClick={openAddForm}>＋ Add your first product</button>}
-                  </td></tr>
-                ) : filteredProducts.map((product) => {
-                  const quantityValue = Number(product.quantity || 0);
-                  const stockStatus = quantityValue === 0
-                    ? ["out", "Out of stock"]
-                    : quantityValue <= 5
-                      ? ["low", "Low stock"]
-                      : ["in", "In stock"];
-
-                  return (
-                    <tr key={product.id}>
-                      <td>
-                        <div className="product-cell">
-                          <span className="product-avatar">{product.product_name?.charAt(0).toUpperCase() || "P"}</span>
-                          <span className="product-info"><strong>{product.product_name}</strong><span>{product.description || "No description"}</span></span>
-                        </div>
-                      </td>
-                      <td className="price-cell">₱{Number(product.price || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                      <td><span className="quantity-cell">{quantityValue.toLocaleString()} <small>units</small></span></td>
-                      <td><span className={`stock-badge stock-${stockStatus[0]}`}><span />{stockStatus[1]}</span></td>
-                      <td className="date-cell">{product.created_at ? new Date(product.created_at).toLocaleDateString("en-PH", { month: "short", day: "numeric", year: "numeric" }) : "—"}</td>
-                      <td>
-                        <div className="row-actions">
-                          <button className="row-action edit-row-action" onClick={() => openEditForm(product)} aria-label={`Edit ${product.product_name}`} title="Edit product">Edit</button>
-                          <button className="row-action delete-row-action" onClick={() => deleteProduct(product.id)} aria-label={`Delete ${product.product_name}`} title="Delete product">Delete</button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <footer className="table-footer"><span>Showing <strong>{filteredProducts.length}</strong> of <strong>{products.length}</strong> products</span><span>KANTO STORE <i>·</i> PANINDA</span></footer>
-        </section>
-        </main>
-      </div>
+    <>
+      <ProductDashboard
+        user={user}
+        products={products}
+        loading={loading}
+        searchQuery={searchQuery}
+        stockFilter={stockFilter}
+        message={message}
+        lowStockCount={lowStockCount}
+        totalUnits={totalUnits}
+        inventoryValue={inventoryValue}
+        filteredProducts={filteredProducts}
+        setSearchQuery={setSearchQuery}
+        setStockFilter={setStockFilter}
+        loadProducts={loadProducts}
+        openAddForm={openAddForm}
+        openEditForm={openEditForm}
+        deleteProduct={deleteProduct}
+        setMessage={setMessage}
+        logout={logout}
+      />
 
       {showForm && (
         <div className="modal-backdrop" onMouseDown={(event) => event.target === event.currentTarget && closeForm()}>
@@ -861,7 +516,7 @@ function App() {
           </section>
         </div>
       )}
-    </div>
+    </>
   );
 }
 

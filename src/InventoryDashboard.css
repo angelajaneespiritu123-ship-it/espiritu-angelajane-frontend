@@ -165,7 +165,7 @@
 .table-footer i { padding: 0 4px; color: #c18b40; font-style: normal; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; clip-path: inset(50%); }
 .modal-backdrop { position: fixed; z-index: 10; inset: 0; padding: 24px; display: grid; place-items: center; overflow-y: auto; background: rgba(18, 34, 27, .58); backdrop-filter: blur(3px); }
-.product-modal { width: min(520px, 100%); padding: 28px; border: 1px solid #deded3; border-radius: 4px; background: var(--cedro-white); box-shadow: 0 24px 80px rgba(13, 34, 24, .24); }
+.product-modal { --cedro-green: #294638; --cedro-white: #fffdf7; width: min(520px, 100%); padding: 28px; border: 1px solid #deded3; border-radius: 4px; background: #fffdf7; color: #2c3128; box-shadow: 0 24px 80px rgba(13, 34, 24, .24); }
 .modal-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
 .modal-heading h2 { font-size: 28px; }
 .modal-close { width: 32px; height: 32px; display: grid; place-items: center; border: 1px solid #e4e4dc; border-radius: 3px; background: transparent; color: #57685d; font-size: 20px !important; line-height: 1; }
@@ -376,6 +376,11 @@
   font-family: "Aptos", "Segoe UI", sans-serif;
 }
 
+.auth-page,
+.auth-page *,
+.auth-page *::before,
+.auth-page *::after { box-sizing: border-box; }
+
 .auth-showcase {
   min-height: 100vh;
   position: relative;
@@ -404,10 +409,10 @@
 .auth-showcase-foot { position: relative; z-index: 1; color: #e5e3d4; font-size: 8px; letter-spacing: 1.4px; }
 .auth-showcase-foot i { padding: 0 5px; color: #edaa70; font-style: normal; }
 .auth-panel { min-height: 100vh; padding: 42px; display: grid; place-items: center; background: #fbf9f2; }
-.auth-card { width: min(390px, 100%); display: grid; align-content: center; }
+.auth-card { width: min(414px, 100%); display: grid; align-content: center; }
 .auth-mobile-brand { display: none; }
 .auth-form-overline { margin-top: 4px; }
-.auth-title { margin: 9px 0 6px; color: #2e4937; font-family: Georgia, "Times New Roman", serif; font-size: 34px; font-weight: 500; letter-spacing: 0; line-height: 1.1; }
+.auth-title { margin: 9px 0 6px; color: #2e4937; font-family: Georgia, "Times New Roman", serif; font-size: 36px; font-weight: 500; letter-spacing: 0; line-height: 1.1; }
 .auth-title > span { color: #c97042; }
 .auth-subtitle { margin: 0 0 25px; color: #7e8175; font-size: 12px; line-height: 1.6; }
 .auth-form { display: grid; gap: 13px; }
