@@ -204,6 +204,11 @@ function App() {
       const data = await parseApiResult(response);
 
       if (!response.ok) {
+        if (response.status === 401) {
+          expireSession();
+          return false;
+        }
+
         setMessage(
           data.message || "Failed to load products."
         );
@@ -283,6 +288,18 @@ function App() {
     setQuantity("");
   };
 
+  const expireSession = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("user");
+    setUser(null);
+    setProducts([]);
+    setLoginSuccess(false);
+    setIsRegistrationSuccess(false);
+    setAuthMode("login");
+    closeForm();
+    setMessage("Your session expired. Please sign in again.");
+  };
+
   // ==========================================
   // SAVE PRODUCT
   // ADD / UPDATE
@@ -347,6 +364,11 @@ function App() {
       const data = await parseApiResult(response);
 
       if (!response.ok) {
+        if (response.status === 401) {
+          expireSession();
+          return;
+        }
+
         setMessage(
           data.message || "Unable to save product."
         );
@@ -405,6 +427,11 @@ function App() {
       const data = await parseApiResult(response);
 
       if (!response.ok) {
+        if (response.status === 401) {
+          expireSession();
+          return;
+        }
+
         setMessage(
           data.message || "Unable to delete product."
         );
