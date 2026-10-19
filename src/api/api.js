@@ -2,9 +2,10 @@ export const APP_NAME = "KANTO SARI-SARI STORE";
 export const APP_SUBTITLE = "Daily Stock Management";
 
 const configuredApiUrl = (import.meta.env.VITE_API_URL || "").trim();
+const apiBaseUrl = import.meta.env.DEV ? configuredApiUrl.replace(/\/+$/, "") : "";
 
 export const API_CONFIG = {
-  baseUrl: configuredApiUrl.replace(/\/+$/, ""),
+  baseUrl: apiBaseUrl,
   endpoints: {
     login: "/api/login",
     register: "/api/register",
@@ -12,7 +13,7 @@ export const API_CONFIG = {
   },
 };
 
-export const API_URL = import.meta.env.DEV ? API_CONFIG.baseUrl : API_CONFIG.baseUrl.replace(/\/api$/i, "");
+export const API_URL = API_CONFIG.baseUrl;
 export const FALLBACK_API_URLS = [API_URL];
 
 export const buildApiUrl = (baseUrl, endpoint) => {
@@ -62,13 +63,6 @@ export const parseApiResult = async (response) => {
 };
 
 export const requestWithFallback = async (endpoints, payload, method = "POST") => {
-  if (!API_URL && !import.meta.env.DEV) {
-    return {
-      ok: false,
-      data: { message: "API URL is not configured. Add VITE_API_URL in Vercel, then redeploy." },
-    };
-  }
-
   let lastError = null;
 
   for (const baseUrl of FALLBACK_API_URLS) {

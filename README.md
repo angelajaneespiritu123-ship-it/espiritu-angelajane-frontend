@@ -1,16 +1,28 @@
-# React + Vite
+# Kanto Sari-Sari Store
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React and Vite frontend for the Kanto Store inventory API.
 
-Currently, two official plugins are available:
+## Local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Install dependencies and start the frontend:
 
-## React Compiler
+```sh
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+The Vite development server proxies `/api` requests to `http://127.0.0.1:8001`.
+Start the PHP API from `LavalustAPI` in a separate terminal:
 
-## Expanding the Oxlint configuration
+```sh
+php -S 127.0.0.1:8001 index.php
+```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Vercel deployment
+
+`vercel.json` proxies `/api/*` requests through Vercel to the deployed Render API.
+This keeps browser requests on the Vercel origin and avoids cross-origin CORS
+preflight failures. Production builds use this proxy automatically; do not set
+`VITE_API_URL` in Vercel.
+
+After changing the API host in `vercel.json`, redeploy the Vercel project.
