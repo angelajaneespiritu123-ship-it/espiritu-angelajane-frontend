@@ -70,13 +70,20 @@ export const requestWithFallback = async (endpoints, payload, method = "POST") =
       const url = buildApiUrl(baseUrl, endpoint);
 
       try {
+        const formData = new URLSearchParams();
+        Object.entries(payload || {}).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            formData.set(key, String(value));
+          }
+        });
+
         const response = await fetch(url, {
           method,
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
             Accept: "application/json",
           },
-          body: method === "GET" ? undefined : JSON.stringify(payload || {}),
+          body: method === "GET" ? undefined : formData.toString(),
         });
 
         const data = await parseApiResult(response);

@@ -29,6 +29,12 @@ function jsonResponse(int $status, array $payload): void
     exit;
 }
 
+function requestPayload(): array
+{
+    $jsonPayload = json_decode(file_get_contents('php://input'), true);
+    return is_array($jsonPayload) ? $jsonPayload : $_POST;
+}
+
 function getBearerToken(): ?string
 {
     $header = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
@@ -55,14 +61,12 @@ if ($path === '/health' && $method === 'GET') {
 }
 
 if ($path === '/api/login' && $method === 'POST') {
-    $payload = json_decode(file_get_contents('php://input'), true) ?? [];
-    $response = AuthController::login($payload);
+    $response = AuthController::login(requestPayload());
     jsonResponse($response['status'], $response);
 }
 
 if ($path === '/api/register' && $method === 'POST') {
-    $payload = json_decode(file_get_contents('php://input'), true) ?? [];
-    $response = AuthController::register($payload);
+    $response = AuthController::register(requestPayload());
     jsonResponse($response['status'], $response);
 }
 
