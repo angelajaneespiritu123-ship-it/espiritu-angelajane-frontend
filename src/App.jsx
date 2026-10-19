@@ -182,13 +182,15 @@ function App() {
   // LOAD PRODUCTS
   // ==========================================
 
-  const loadProducts = async (token = getToken()) => {
+  const loadProducts = async (token = getToken(), { clearMessage = true } = {}) => {
     if (!token) {
-      return;
+      return false;
     }
 
     setLoading(true);
-    setMessage("");
+    if (clearMessage) {
+      setMessage("");
+    }
 
     try {
       const response = await fetch(buildApiUrl(API_URL, API_CONFIG.endpoints.products), {
@@ -205,14 +207,16 @@ function App() {
         setMessage(
           data.message || "Failed to load products."
         );
-        return;
+        return false;
       }
 
       setProducts(data.products || []);
+      return true;
 
     } catch (error) {
       console.error(error);
       setMessage("Unable to load products.");
+      return false;
     } finally {
       setLoading(false);
     }
@@ -349,15 +353,15 @@ function App() {
         return;
       }
 
-      setMessage(
+      const successMessage =
         isEditing
           ? "Product updated successfully!"
-          : "Product added successfully!"
-      );
+          : "Product added successfully!";
 
       closeForm();
 
-      await loadProducts();
+      setMessage(successMessage);
+      await loadProducts(token, { clearMessage: false });
 
     } catch (error) {
       console.error(error);
@@ -408,8 +412,7 @@ function App() {
       }
 
       setMessage("Product deleted successfully!");
-
-      await loadProducts();
+      await loadProducts(token, { clearMessage: false });
 
     } catch (error) {
       console.error(error);
